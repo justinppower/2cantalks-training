@@ -265,14 +265,24 @@ async function checkGate() {
   const email = document.getElementById("gate-email").value.trim();
   const pass = document.getElementById("gate-password").value;
   const err = document.getElementById("gate-error");
-  if (!email || !pass) { err.textContent = "Please enter your email and password."; err.style.display = "block"; return; }
+  if (!email || !email.includes('@')) { err.textContent = "Please enter a valid email address."; err.style.display = "block"; return; }
+  if (!pass) { err.textContent = "Please enter your password."; err.style.display = "block"; return; }
   const hash = await sha256(pass);
   if (hash === PASS_HASH) {
-    document.getElementById("password-gate").style.display = "none";
-    document.getElementById("login-screen").style.display = "flex";
-    document.getElementById("rep-name").value = email.split("@")[0].replace(/[._]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
     sessionStorage.setItem("2ct_auth","1");
     sessionStorage.setItem("2ct_email", email);
+    const displayName = email.split("@")[0].replace(/[._]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+    document.getElementById("rep-name").value = displayName;
+    document.getElementById("password-gate").style.display = "none";
+    // Skip name screen — go straight to app
+    currentUser = getUserData(displayName);
+    currentRole = "rep";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("user-display").textContent = email;
+    document.getElementById("mgr-tab").classList.toggle("hidden", true);
+    updateDashboard();
+    switchView("dashboard");
   } else {
     err.textContent = "Incorrect password. Please try again or contact your manager."; err.style.display = "block";
     document.getElementById("gate-password").value = "";
@@ -281,10 +291,18 @@ async function checkGate() {
 // Auto-restore if already authenticated this session
 if (sessionStorage.getItem("2ct_auth") === "1") {
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("password-gate").style.display = "none";
-    document.getElementById("login-screen").style.display = "flex";
     const email = sessionStorage.getItem("2ct_email") || "";
-    if (email) document.getElementById("rep-name").value = email.split("@")[0].replace(/[._]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+    const displayName = email ? email.split("@")[0].replace(/[._]/g," ").replace(/\b\w/g,c=>c.toUpperCase()) : "Agent";
+    document.getElementById("rep-name").value = displayName;
+    document.getElementById("password-gate").style.display = "none";
+    currentUser = getUserData(displayName);
+    currentRole = "rep";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("user-display").textContent = email || displayName;
+    document.getElementById("mgr-tab").classList.toggle("hidden", true);
+    updateDashboard();
+    switchView("dashboard");
   });
 }
 
