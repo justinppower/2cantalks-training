@@ -1124,6 +1124,48 @@ function renderManager() {
   });
   document.getElementById("mgr-reps").innerHTML = html;
 }
+
+
+// === QUIZ LOCKOUT PATCH ===
+// Hides learning content when quiz is active so agents cannot scroll to answers
+(function(){
+  var _renderTraining = renderTraining;
+  var _checkQuiz = checkQuiz;
+
+  renderTraining = function(){
+    _renderTraining.apply(this, arguments);
+    var qc = document.querySelector('.quiz-container');
+    if(qc && qc.children.length > 1){
+      qc.dataset.quizHtml = qc.innerHTML;
+      qc.innerHTML = '<h3>\u{1f4cb} Quiz</h3><button class="btn btn-primary" style="margin-top:12px;padding:12px 32px;font-size:1.1em" onclick="enterQuizMode()">Start Quiz</button><p style="color:#999;font-size:0.85em;margin-top:8px">Content will be hidden during the quiz to test your knowledge.</p>';
+    }
+  };
+
+  window.enterQuizMode = function(){
+    var qc = document.querySelector('.quiz-container');
+    if(!qc||!qc.dataset.quizHtml) return;
+    qc.innerHTML = qc.dataset.quizHtml;
+    var lesson = qc.closest('.lesson');
+    if(lesson){
+      Array.from(lesson.children).forEach(function(ch){
+        if(ch!==qc && !ch.classList.contains('action-buttons')){
+          ch.dataset.hiddenForQuiz='1'; ch.style.display='none';
+        }
+      });
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  checkQuiz = function(){
+    _checkQuiz.apply(this, arguments);
+    setTimeout(function(){
+      document.querySelectorAll('[data-hidden-for-quiz]').forEach(function(el){
+        el.style.display=''; delete el.dataset.hiddenForQuiz;
+      });
+    },300);
+  };
+})();
+// === END QUIZ LOCKOUT PATCH ===
 </script>
 
 </body>
