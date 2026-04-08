@@ -781,6 +781,41 @@ const WEEKS = [
     }
   ]}
 ];
+// ====== SUPABASE INTEGRATION ======
+const SUPABASE_URL = 'https://fcbuxllowtpkrfjrbnsa.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjYnV4bGxvd3Rwa3JmanJibnNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1ODI2NDEsImV4cCI6MjA5MDE1ODY0MX0.gqbXek5xHajxr0-V_L-fcz84UgPQfUZfpozvTeHYIP4';
+
+function supaFetch(path, opts = {}) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...(opts.headers || {})
+    }
+  }).catch(() => null);
+}
+
+function reportB2BScore(email, quizId, score, total, pct, passed) {
+  supaFetch('training_quiz_results', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=representation',
+    body: JSON.stringify({
+      email: email,
+      name: email.split('@')[0].replace(/[._]/g, ' '),
+      course: 'b2b',
+      quiz_id: quizId,
+      score: score,
+      total: total,
+      percentage: pct,
+      passed: passed,
+      completed_at: new Date().toISOString()
+    })
+  });
+}
+
 
 // ====== STATE ======
 let currentUser = null;
@@ -1058,6 +1093,10 @@ function checkQuiz() {
     resultEl.textContent = `Keep studying! ${correct}/${total} (${pct}%). Need 70% to pass.`;
   }
   resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Report to Supabase
+  const b2bEmail = sessionStorage.getItem("2ct_email") || (currentUser ? currentUser.name : 'unknown');
+  reportB2BScore(b2bEmail, currentWeek + '-' + currentDay, correct, total, pct, passed);
 }
 function renderManager() {
   const allReps = getAllReps();
